@@ -1,12 +1,13 @@
 const supabase = require("../config/supabase");
 
-// @desc    Get all tasks
+// @desc    Get all tasks for authenticated user
 // @route   GET /api/tasks
 const getTasks = async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("tasks")
       .select("*")
+      .eq("user_id", req.user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -30,7 +31,7 @@ const getTasks = async (req, res) => {
   }
 };
 
-// @desc    Create a new task
+// @desc    Create a new task for authenticated user
 // @route   POST /api/tasks
 const createTask = async (req, res) => {
   try {
@@ -62,8 +63,9 @@ const createTask = async (req, res) => {
       });
     }
 
-    // Prepare task data (mapping dueDate to due_date)
+    // Prepare task data (mapping dueDate to due_date and attaching authenticated user_id)
     const taskData = {
+      user_id: req.user.id,
       title: title.trim(),
       description: description || null,
       priority,
@@ -99,7 +101,7 @@ const createTask = async (req, res) => {
   }
 };
 
-// @desc    Get task by ID
+// @desc    Get task by ID for authenticated user
 // @route   GET /api/tasks/:id
 const getTaskById = async (req, res) => {
   try {
@@ -109,6 +111,7 @@ const getTaskById = async (req, res) => {
       .from("tasks")
       .select("*")
       .eq("id", id)
+      .eq("user_id", req.user.id)
       .maybeSingle();
 
     if (error) {
@@ -139,7 +142,7 @@ const getTaskById = async (req, res) => {
   }
 };
 
-// @desc    Update a task
+// @desc    Update a task for authenticated user
 // @route   PUT /api/tasks/:id
 const updateTask = async (req, res) => {
   try {
@@ -202,6 +205,7 @@ const updateTask = async (req, res) => {
       .from("tasks")
       .update(updateData)
       .eq("id", id)
+      .eq("user_id", req.user.id)
       .select()
       .maybeSingle();
 
@@ -233,7 +237,7 @@ const updateTask = async (req, res) => {
   }
 };
 
-// @desc    Delete a task
+// @desc    Delete a task for authenticated user
 // @route   DELETE /api/tasks/:id
 const deleteTask = async (req, res) => {
   try {
@@ -243,6 +247,7 @@ const deleteTask = async (req, res) => {
       .from("tasks")
       .delete()
       .eq("id", id)
+      .eq("user_id", req.user.id)
       .select()
       .maybeSingle();
 

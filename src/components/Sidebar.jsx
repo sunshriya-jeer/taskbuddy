@@ -1,3 +1,5 @@
+import { useAuth } from "../context/AuthContext"
+
 function Sidebar({
   isOpen,
   onClose,
@@ -5,6 +7,7 @@ function Sidebar({
   activeView = "dashboard",
   onNavigate,
 }) {
+  const { user, signOut } = useAuth()
   return (
     <>
       {/* Mobile Backdrop Overlay */}
@@ -191,12 +194,76 @@ function Sidebar({
             <span className="nav-label">Settings</span>
           </a>
 
+          <button
+            type="button"
+            className="nav-item nav-btn-logout"
+            onClick={async () => {
+              try {
+                await signOut()
+                if (onClose) onClose()
+              } catch (err) {
+                console.error("Logout failed:", err)
+              }
+            }}
+          >
+            <span className="nav-icon">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </span>
+            <span className="nav-label">Log Out</span>
+          </button>
+
           <div className="user-profile-widget">
-            <div className="user-avatar">TB</div>
-            <div className="user-info">
-              <span className="user-name">Workspace Pro</span>
-              <span className="user-role">Productivity Mode</span>
+            <div className="user-avatar">
+              {user?.email ? user.email.slice(0, 2).toUpperCase() : "TB"}
             </div>
+            <div className="user-info">
+              <span className="user-name" title={user?.email || "Workspace User"}>
+                {user?.email ? user.email.split("@")[0] : "Workspace User"}
+              </span>
+              <span className="user-role">{user?.email || "Productivity Mode"}</span>
+            </div>
+            <button
+              type="button"
+              className="btn-sidebar-logout"
+              onClick={async () => {
+                try {
+                  await signOut()
+                  if (onClose) onClose()
+                } catch (err) {
+                  console.error("Logout failed:", err)
+                }
+              }}
+              title="Log out"
+              aria-label="Log out"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </button>
           </div>
         </div>
       </aside>

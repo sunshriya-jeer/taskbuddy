@@ -7,7 +7,44 @@ import FilterBar from "../components/FilterBar"
 import CompletedTasks from "../components/CompletedTasks"
 import { getTasks, createTask, updateTask, deleteTask } from "../services/taskService"
 
+/**
+ * Calculates the dashboard greeting based on Indian Standard Time (IST - Asia/Kolkata).
+ *
+ * Greeting Schedule:
+ * - 5:00 AM to 11:59 AM  -> "Good Morning"
+ * - 12:00 PM to 12:59 PM -> "Good Day"
+ * - 1:00 PM to 4:59 PM   -> "Good Afternoon"
+ * - 5:00 PM to 8:59 PM   -> "Good Evening"
+ * - 9:00 PM to 4:59 AM   -> "Good Night"
+ */
+const getGreeting = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    hour: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(date)
+
+  const hourPart = parts.find((part) => part.type === "hour")?.value
+  const hour = hourPart !== undefined ? parseInt(hourPart, 10) : 0
+
+  if (hour >= 5 && hour < 12) {
+    return "Good Morning"
+  }
+  if (hour === 12) {
+    return "Good Day"
+  }
+  if (hour >= 13 && hour < 17) {
+    return "Good Afternoon"
+  }
+  if (hour >= 17 && hour < 21) {
+    return "Good Evening"
+  }
+  return "Good Night"
+}
+
 function Dashboard() {
+  const greeting = getGreeting()
+
   const getInitialView = () => {
     if (typeof window !== "undefined" && window.location.hash === "#completed") {
       return "completed"
@@ -255,7 +292,7 @@ function Dashboard() {
               <span>{currentView === "completed" ? "Completed" : "Overview"}</span>
             </div>
             <h1 className="header-title">
-              {currentView === "completed" ? "Completed Tasks ✅" : "Good morning 👋"}
+              {currentView === "completed" ? "Completed Tasks ✅" : `${greeting} 👋`}
             </h1>
             <p className="header-subtitle">
               {currentView === "completed"
