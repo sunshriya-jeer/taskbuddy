@@ -4,15 +4,55 @@ import TaskCard from "../components/TaskCard"
 import TaskForm from "../components/TaskForm"
 import SearchBar from "../components/SearchBar"
 import FilterBar from "../components/FilterBar"
+import CompletedTasks from "../components/CompletedTasks"
 import { getTasks, createTask, updateTask, deleteTask } from "../services/taskService"
 
 function Dashboard() {
+  const getInitialView = () => {
+    if (typeof window !== "undefined" && window.location.hash === "#completed") {
+      return "completed"
+    }
+    return "dashboard"
+  }
+
+  const [currentView, setCurrentView] = useState(getInitialView)
   const [tasks, setTasks] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [taskToEdit, setTaskToEdit] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+
+  // Listen to hashchange for seamless browser navigation & refreshes
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === "#completed") {
+        setCurrentView("completed")
+      } else {
+        setCurrentView("dashboard")
+      }
+    }
+    window.addEventListener("hashchange", handleHashChange)
+    return () => window.removeEventListener("hashchange", handleHashChange)
+  }, [])
+
+  const handleNavigate = (view, targetId) => {
+    setCurrentView(view)
+    if (view === "completed") {
+      window.location.hash = "completed"
+    } else if (targetId) {
+      window.location.hash = targetId
+      setTimeout(() => {
+        const element = document.getElementById(targetId)
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" })
+        }
+      }, 50)
+    } else {
+      window.location.hash = "dashboard"
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
 
   // Search and Filter States
   const [searchTerm, setSearchTerm] = useState("")
@@ -154,6 +194,8 @@ function Dashboard() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onOpenAddTask={handleOpenCreateForm}
+        activeView={currentView}
+        onNavigate={handleNavigate}
       />
 
       <main className="main-content">
@@ -210,11 +252,15 @@ function Dashboard() {
           <div className="header-greeting">
             <div className="welcome-badge">
               <span className="pulse-dot"></span>
-              <span>Overview</span>
+              <span>{currentView === "completed" ? "Completed" : "Overview"}</span>
             </div>
-            <h1 className="header-title">Good morning 👋</h1>
+            <h1 className="header-title">
+              {currentView === "completed" ? "Completed Tasks ✅" : "Good morning 👋"}
+            </h1>
             <p className="header-subtitle">
-              Manage your tasks, track deadlines, and maintain your workflow.
+              {currentView === "completed"
+                ? "Review and track all your successfully completed achievements."
+                : "Manage your tasks, track deadlines, and maintain your workflow."}
             </p>
           </div>
 
@@ -285,8 +331,32 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Statistics Cards Grid */}
-        <section className="stats-grid">
+        {/* Modal Form for Create / Edit */}
+        {showTaskForm && (
+          <TaskForm
+            key={taskToEdit ? taskToEdit.id : "new"}
+            taskToEdit={taskToEdit}
+            onCreateTask={handleCreateTask}
+            onUpdateTask={handleEditTask}
+            onCancel={() => {
+              setShowTaskForm(false)
+              setTaskToEdit(null)
+            }}
+          />
+        )}
+
+        {currentView === "completed" ? (
+          <CompletedTasks
+            tasks={tasks}
+            isLoading={isLoading}
+            onEdit={handleStartEdit}
+            onDelete={handleDeleteTask}
+            onNavigate={handleNavigate}
+          />
+        ) : (
+          <>
+            {/* Statistics Cards Grid */}
+            <section className="stats-grid">
           <div className="stat-card stat-card-total">
             <div className="stat-card-top">
               <span className="stat-label">Total Tasks</span>
@@ -336,7 +406,12 @@ function Dashboard() {
             <div className="stat-subtext">Currently working on</div>
           </div>
 
-          <div className="stat-card stat-card-completed">
+          <div
+            className="stat-card stat-card-completed"
+            onClick={() => handleNavigate("completed")}
+            style={{ cursor: "pointer" }}
+            title="View Completed Tasks"
+          >
             <div className="stat-card-top">
               <span className="stat-label">Completed</span>
               <div className="stat-icon-wrapper icon-completed">
@@ -383,20 +458,6 @@ function Dashboard() {
             <div className="stat-subtext">Requires immediate attention</div>
           </div>
         </section>
-
-        {/* Modal Form for Create / Edit */}
-        {showTaskForm && (
-          <TaskForm
-            key={taskToEdit ? taskToEdit.id : "new"}
-            taskToEdit={taskToEdit}
-            onCreateTask={handleCreateTask}
-            onUpdateTask={handleEditTask}
-            onCancel={() => {
-              setShowTaskForm(false)
-              setTaskToEdit(null)
-            }}
-          />
-        )}
 
         {/* Tasks Section */}
         <section id="tasks" className="tasks-section">
@@ -572,7 +633,9 @@ function Dashboard() {
             </div>
           )}
         </section>
-      </main>
+      </>
+    )}
+  </main>
     </div>
   )
 }

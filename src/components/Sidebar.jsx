@@ -1,4 +1,10 @@
-function Sidebar({ isOpen, onClose, onOpenAddTask }) {
+function Sidebar({
+  isOpen,
+  onClose,
+  onOpenAddTask,
+  activeView = "dashboard",
+  onNavigate,
+}) {
   return (
     <>
       {/* Mobile Backdrop Overlay */}
@@ -53,7 +59,15 @@ function Sidebar({ isOpen, onClose, onOpenAddTask }) {
 
         <nav className="sidebar-nav">
           <div className="nav-section-title">Menu</div>
-          <a href="#dashboard" className="nav-item active" onClick={onClose}>
+          <a
+            href="#dashboard"
+            className={`nav-item ${activeView === "dashboard" ? "active" : ""}`}
+            onClick={(e) => {
+              e.preventDefault()
+              if (onNavigate) onNavigate("dashboard")
+              if (onClose) onClose()
+            }}
+          >
             <span className="nav-icon">
               <svg
                 width="18"
@@ -74,7 +88,15 @@ function Sidebar({ isOpen, onClose, onOpenAddTask }) {
             <span className="nav-label">Dashboard</span>
           </a>
 
-          <a href="#tasks" className="nav-item" onClick={onClose}>
+          <a
+            href="#tasks"
+            className="nav-item"
+            onClick={(e) => {
+              e.preventDefault()
+              if (onNavigate) onNavigate("dashboard", "tasks")
+              if (onClose) onClose()
+            }}
+          >
             <span className="nav-icon">
               <svg
                 width="18"
@@ -91,6 +113,33 @@ function Sidebar({ isOpen, onClose, onOpenAddTask }) {
               </svg>
             </span>
             <span className="nav-label">My Tasks</span>
+          </a>
+
+          <a
+            href="#completed"
+            className={`nav-item ${activeView === "completed" ? "active" : ""}`}
+            onClick={(e) => {
+              e.preventDefault()
+              if (onNavigate) onNavigate("completed")
+              if (onClose) onClose()
+            }}
+          >
+            <span className="nav-icon">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </span>
+            <span className="nav-label">Completed Tasks</span>
           </a>
 
           <button
