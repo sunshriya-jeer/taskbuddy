@@ -11,6 +11,7 @@ function TaskForm({
   const isEditing = Boolean(taskToEdit)
   const initialSource = taskToEdit || initialValues
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     title: initialSource?.title || "",
     description: initialSource?.description || "",
@@ -23,13 +24,13 @@ function TaskForm({
   // Close modal when pressing Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === "Escape" && onCancel) {
+      if (e.key === "Escape" && onCancel && !isSubmitting) {
         onCancel()
       }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [onCancel])
+  }, [onCancel, isSubmitting])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -39,40 +40,48 @@ function TaskForm({
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.title.trim()) return
+    if (!formData.title.trim() || isSubmitting) return
 
-    if (isEditing) {
-      if (onUpdateTask) {
-        onUpdateTask({
-          ...formData,
-          id: taskToEdit.id,
-        })
+    try {
+      setIsSubmitting(true)
+      if (isEditing) {
+        if (onUpdateTask) {
+          await onUpdateTask({
+            ...formData,
+            id: taskToEdit.id,
+          })
+        }
+      } else {
+        if (onCreateTask) {
+          await onCreateTask(formData)
+        } else if (onSubmit) {
+          await onSubmit(formData)
+        }
       }
-    } else {
-      if (onCreateTask) {
-        onCreateTask(formData)
-      } else if (onSubmit) {
-        onSubmit(formData)
+
+      setFormData({
+        title: "",
+        description: "",
+        priority: "Medium",
+        status: "Pending",
+        category: "",
+        dueDate: "",
+      })
+
+      if (onCancel) {
+        onCancel()
       }
-    }
-
-    setFormData({
-      title: "",
-      description: "",
-      priority: "Medium",
-      status: "Pending",
-      category: "",
-      dueDate: "",
-    })
-
-    if (onCancel) {
-      onCancel()
+    } catch {
+      // If error occurs, keep form open and reset submission state
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const handleCancel = () => {
+    if (isSubmitting) return
     setFormData({
       title: "",
       description: "",
@@ -244,7 +253,11 @@ function TaskForm({
             >
               Cancel
             </button>
-            <button type="submit" className="btn-modal-submit">
+            <button
+              type="submit"
+              className="btn-modal-submit"
+              disabled={isSubmitting}
+            >
               {isEditing ? (
                 <>
                   <svg
@@ -259,7 +272,7 @@ function TaskForm({
                   >
                     <polyline points="20 6 9 17 4 12"></polyline>
                   </svg>
-                  <span>Update Task</span>
+                  <span>{isSubmitting ? "Updating..." : "Update Task"}</span>
                 </>
               ) : (
                 <>
@@ -276,7 +289,7 @@ function TaskForm({
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                   </svg>
-                  <span>Create Task</span>
+                  <span>{isSubmitting ? "Creating..." : "Create Task"}</span>
                 </>
               )}
             </button>

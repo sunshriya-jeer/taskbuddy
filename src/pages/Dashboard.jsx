@@ -1,12 +1,15 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Sidebar from "../components/Sidebar"
 import TaskCard from "../components/TaskCard"
 import TaskForm from "../components/TaskForm"
 import SearchBar from "../components/SearchBar"
 import FilterBar from "../components/FilterBar"
+import { getTasks, createTask, updateTask, deleteTask } from "../services/taskService"
 
 function Dashboard() {
   const [tasks, setTasks] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [taskToEdit, setTaskToEdit] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -16,29 +19,67 @@ function Dashboard() {
   const [statusFilter, setStatusFilter] = useState("All Statuses")
   const [priorityFilter, setPriorityFilter] = useState("All Priorities")
 
-  const handleCreateTask = (newTaskData) => {
-    const newTask = {
-      ...newTaskData,
-      id: Date.now(),
+  // Fetch initial tasks from backend API
+  useEffect(() => {
+    const fetchInitialTasks = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const data = await getTasks()
+        setTasks(data)
+      } catch (err) {
+        console.error("Error loading tasks:", err)
+        setError(err.message || "Failed to load tasks from server.")
+      } finally {
+        setIsLoading(false)
+      }
     }
-    setTasks((prevTasks) => [newTask, ...prevTasks])
-    setShowTaskForm(false)
-    setTaskToEdit(null)
+
+    fetchInitialTasks()
+  }, [])
+
+  const handleCreateTask = async (newTaskData) => {
+    try {
+      setError(null)
+      const createdTask = await createTask(newTaskData)
+      setTasks((prevTasks) => [createdTask, ...prevTasks])
+      setShowTaskForm(false)
+      setTaskToEdit(null)
+    } catch (err) {
+      console.error("Error creating task:", err)
+      setError(err.message || "Failed to create task.")
+      throw err
+    }
   }
 
-  const handleEditTask = (updatedTask) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
-    )
-    setTaskToEdit(null)
-    setShowTaskForm(false)
-  }
-
-  const handleDeleteTask = (taskId) => {
-    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId))
-    if (taskToEdit && taskToEdit.id === taskId) {
+  const handleEditTask = async (updatedTaskData) => {
+    try {
+      setError(null)
+      const updated = await updateTask(updatedTaskData.id, updatedTaskData)
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => (task.id === updated.id ? updated : task))
+      )
       setTaskToEdit(null)
       setShowTaskForm(false)
+    } catch (err) {
+      console.error("Error updating task:", err)
+      setError(err.message || "Failed to update task.")
+      throw err
+    }
+  }
+
+  const handleDeleteTask = async (taskId) => {
+    try {
+      setError(null)
+      await deleteTask(taskId)
+      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId))
+      if (taskToEdit && taskToEdit.id === taskId) {
+        setTaskToEdit(null)
+        setShowTaskForm(false)
+      }
+    } catch (err) {
+      console.error("Error deleting task:", err)
+      setError(err.message || "Failed to delete task.")
     }
   }
 
@@ -201,6 +242,49 @@ function Dashboard() {
           </div>
         </header>
 
+        {/* Error Alert Banner */}
+        {error && (
+          <div className="dashboard-error-banner" role="alert">
+            <div className="error-banner-content">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>{error}</span>
+            </div>
+            <button
+              type="button"
+              className="error-banner-dismiss"
+              onClick={() => setError(null)}
+              aria-label="Dismiss error"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Statistics Cards Grid */}
         <section className="stats-grid">
           <div className="stat-card stat-card-total">
@@ -351,7 +435,39 @@ function Dashboard() {
             />
           </div>
 
-          {tasks.length === 0 ? (
+          {isLoading ? (
+            /* Clean loading spinner state while fetching tasks */
+            <div className="empty-state">
+              <div className="empty-state-illustration">
+                <div className="empty-icon-circle empty-loading-circle">
+                  <svg
+                    className="loading-spinner-icon"
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                  </svg>
+                </div>
+              </div>
+              <h3 className="empty-state-heading">Loading tasks...</h3>
+              <p className="empty-state-text">
+                Connecting to backend and fetching your latest tasks.
+              </p>
+            </div>
+          ) : tasks.length === 0 ? (
             /* Attractive empty state when user has no tasks yet */
             <div className="empty-state">
               <div className="empty-state-illustration">
