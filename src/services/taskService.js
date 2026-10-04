@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5000/api"
+const API_BASE_URL = "https://taskbuddy-4rno.onrender.com/api"
 
 /**
  * Normalizes a task object from the backend so that `due_date`
